@@ -31,6 +31,20 @@ def schedule_rate(goal_name: str, start: date, end: date, rate: float):
     start_segment = [int(start_timestamp), None, active_rate]
     end_segment = [int(end_timestamp), None, rate]
 
+    # Detect any pre-existing points that fall within the schedule rate period.
+    overlapping_indices = [
+        i for i, s in enumerate(roadall) if start_timestamp <= s[0] <= end_timestamp
+    ]
+
+    if len(overlapping_indices) > 1:
+        # If there are more than 1 overlapping points, throw an exception
+        # as this will likely not behave as the caller expects.
+        raise Exception("Rate cannot be scheduled, too many overlapping segments")
+    elif len(overlapping_indices) == 1:
+        # In the case where there is only a single overlapping point, it can be safely removed.
+        i = overlapping_indices[0]
+        roadall = roadall[:i] + roadall[i + 1 :]
+
     # Add the new segments into roadall, while maintaining chronological order.
     bisect.insort(roadall, start_segment)
     bisect.insort(roadall, end_segment)

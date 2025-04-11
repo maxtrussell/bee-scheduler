@@ -1,6 +1,6 @@
 # Bee Scheduler
 
-Allows for setting rates for arbitrary blocks of time in [Beeminder](https://www.beeminder.com)a.
+Allows for setting rates for arbitrary blocks of time in [Beeminder](https://www.beeminder.com).
 
 ## Usage
 
