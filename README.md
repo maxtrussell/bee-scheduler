@@ -12,6 +12,11 @@ $ export BEEMINDER_TOKEN="<beeminder api token>"
 
 This information may be found at https://www.beeminder.com/api/v1/auth_token.json
 
+This library may be installed using pip:
+```bash
+$ pip install bee-scheduler
+```
+
 To schedule a break (rate=0) for the weekend of April 19th to April 20th:
 ```python
 from datetime import date
