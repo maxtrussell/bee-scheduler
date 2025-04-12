@@ -17,13 +17,13 @@ This library may be installed using pip:
 $ pip install bee-scheduler
 ```
 
-To schedule a break (rate=0) for the weekend of April 19th to April 20th:
+To schedule a break (rate=0) for the day of April 20th:
 ```python
 from datetime import date
 
 from bee_scheduler.scheduler import schedule_rate
 
-start = date(year=2025, month=4, day=19)
+start = date(year=2025, month=4, day=20)
 end = date(year=2025, month=4, day=20)
 rate = 0
 schedule_rate(goal_name, start, end, rate)
