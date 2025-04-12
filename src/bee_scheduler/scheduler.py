@@ -1,5 +1,5 @@
 import bisect
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
 from typing import Optional
 
@@ -12,12 +12,23 @@ BASE_URL = "https://www.beeminder.com/api/v1"
 
 
 # Schedules a rate change from start to end
-def schedule_rate(goal_name: str, start: date, end: date, rate: float):
+def schedule_rate(
+    goal_name: str,
+    start: date,
+    end: date,
+    rate: float,
+    remove_overlapping: bool = False,
+):
+    # For start to be included, we need the date to reflect the starting boundary of the day.
+    # This is a requirement for this function to behave consistently with "Take a Break" in the UI.
+    start -= timedelta(days=1)
+
+    # All beeminder datetimes are at 9 AM. For consistency, adjust start and end times.
     start_timestamp = int(
-        datetime(year=start.year, month=start.month, day=start.day).timestamp()
+        datetime(year=start.year, month=start.month, day=start.day, hour=9).timestamp()
     )
     end_timestamp = int(
-        datetime(year=end.year, month=end.month, day=end.day).timestamp()
+        datetime(year=end.year, month=end.month, day=end.day, hour=9).timestamp()
     )
     roadall = get_goal(goal_name)["roadall"]
 
@@ -25,7 +36,7 @@ def schedule_rate(goal_name: str, start: date, end: date, rate: float):
     active_rate = 0
     for segment_start, _, segment_rate in roadall:
         active_rate = segment_rate
-        if segment_start > start_timestamp:
+        if segment_start >= start_timestamp:
             break
 
     start_segment = [int(start_timestamp), None, active_rate]
@@ -36,18 +47,21 @@ def schedule_rate(goal_name: str, start: date, end: date, rate: float):
         i for i, s in enumerate(roadall) if start_timestamp <= s[0] <= end_timestamp
     ]
 
-    if len(overlapping_indices) > 1:
-        # If there are more than 1 overlapping points, throw an exception
-        # as this will likely not behave as the caller expects.
-        raise Exception("Rate cannot be scheduled, too many overlapping segments")
-    elif len(overlapping_indices) == 1:
-        # In the case where there is only a single overlapping point, it can be safely removed.
-        i = overlapping_indices[0]
-        roadall = roadall[:i] + roadall[i + 1 :]
+    if overlapping_indices:
+        if not remove_overlapping:
+            raise Exception("Rate cannot be scheduled, too many overlapping segments")
+
+        # Remove any overlapping segments.
+        i = min(overlapping_indices)
+        j = max(overlapping_indices)
+        roadall = roadall[:i] + roadall[j + 1 :]
 
     # Add the new segments into roadall, while maintaining chronological order.
     bisect.insort(roadall, start_segment)
     bisect.insort(roadall, end_segment)
+
+    # Remove any unnecessary segments.
+    roadall = __simplify_segments(roadall)
 
     update_goal(goal_name, {"roadall": roadall})
 
@@ -85,3 +99,19 @@ def __get_params(data: Optional[dict] = None):
     if data:
         base |= data
     return base
+
+
+# If multiple, consecutive segments have the same rate, all but
+# the final may be removed.
+def __simplify_segments(
+    roadall: list[list[int, float, float]],
+) -> list[list[int, float, float]]:
+    to_remove = set()
+    prev_rate = None
+    for i, segment in enumerate(roadall):
+        rate = segment[2]
+        if prev_rate is not None and rate == prev_rate:
+            to_remove.add(i - 1)
+        prev_rate = rate
+
+    return [s for i, s in enumerate(roadall) if i not in to_remove]
