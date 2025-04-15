@@ -67,7 +67,7 @@ class BeeScheduler:
         bisect.insort(roadall, end_segment)
 
         # Remove any unnecessary segments.
-        roadall = __simplify_segments(roadall)
+        roadall = self.__simplify_segments(roadall)
 
         self.update_goal(goal_name, {"roadall": roadall})
 
@@ -116,18 +116,18 @@ class BeeScheduler:
             base |= data
         return base
 
+    # If multiple, consecutive segments have the same rate, all but
+    # the final may be removed.
+    def __simplify_segments(
+        self,
+        roadall: list[list[int, float, float]],
+    ) -> list[list[int, float, float]]:
+        to_remove = set()
+        prev_rate = None
+        for i, segment in enumerate(roadall):
+            rate = segment[2]
+            if prev_rate is not None and rate == prev_rate:
+                to_remove.add(i - 1)
+            prev_rate = rate
 
-# If multiple, consecutive segments have the same rate, all but
-# the final may be removed.
-def __simplify_segments(
-    roadall: list[list[int, float, float]],
-) -> list[list[int, float, float]]:
-    to_remove = set()
-    prev_rate = None
-    for i, segment in enumerate(roadall):
-        rate = segment[2]
-        if prev_rate is not None and rate == prev_rate:
-            to_remove.add(i - 1)
-        prev_rate = rate
-
-    return [s for i, s in enumerate(roadall) if i not in to_remove]
+        return [s for i, s in enumerate(roadall) if i not in to_remove]
