@@ -1,6 +1,6 @@
 import bisect
 from datetime import datetime, date, timedelta
-from typing import Optional
+from typing import Optional, Any
 
 import requests
 
@@ -104,6 +104,14 @@ class BeeScheduler:
         resp = requests.post(
             f"{BASE_URL}/users/{self.username}/goals/{goal_name}/datapoints.json",
             json=self.__get_params(data),
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_user(self) -> dict[str, Any]:
+        resp = requests.get(
+            f"{BASE_URL}/users/{self.username}.json",
+            params=self.__get_params(),
         )
         resp.raise_for_status()
         return resp.json()
